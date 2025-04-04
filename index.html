@@ -411,9 +411,11 @@
             <p style="margin-bottom: 10px;">A aplicação identifica e-mails que provavelmente pertencem a empresas com base em:</p>
             <ul style="padding-left: 25px; margin-bottom: 10px;">
                 <li>Domínios corporativos conhecidos</li>
+                <li>Instituições educacionais (como parceiros ou clientes potenciais)</li>
                 <li>Exclusão de domínios pessoais comuns (gmail.com, hotmail.com, etc.)</li>
                 <li>Padrões corporativos de e-mail (nome.sobrenome@, contato@, etc.)</li>
                 <li>Palavras-chave específicas do setor que você adicionar</li>
+                <li>Exclusão de e-mails explicitamente de alunos (que contenham "aluno", "discente", etc.)</li>
             </ul>
             <p>Ajuste as palavras-chave adicionais para refinar os resultados com base no seu setor específico.</p>
         </div>
@@ -466,6 +468,9 @@
                 'instalações', 'instalacoes', 'installation', 'manutenção', 'manutencao',
                 'maintenance', 'representações', 'representacoes', 'representante', 'representacao'
             ];
+            
+            // Padrões de e-mail para estudantes que devem ser excluídos
+            const studentTerms = ['aluno', 'discente', 'estudante', 'student'];
 
             // Drag and drop functionality
             fileUpload.addEventListener('dragover', function(e) {
@@ -502,13 +507,20 @@
                 // Verificar formato básico de e-mail
                 if (!email.includes('@') || !email.includes('.')) return false;
                 
-                // Obter domínio do e-mail
+                // Obter partes do e-mail
+                const namePart = email.split('@')[0].toLowerCase();
                 const domain = email.split('@')[1];
                 if (!domain) return false;
                 
                 // Evitar domínios comuns de e-mail pessoal
                 const personalDomains = ['gmail.com', 'hotmail.com', 'outlook.com', 'yahoo.com', 'icloud.com', 'aol.com', 'protonmail.com', 'mail.com', 'zoho.com', 'ymail.com', 'bol.com.br', 'uol.com.br', 'terra.com.br', 'ig.com.br', 'globo.com', 'live.com', 'msn.com'];
                 if (personalDomains.some(d => domain === d)) return false;
+                
+                // Verificar se é explicitamente um e-mail de aluno
+                // Verificamos apenas a parte do nome do e-mail, não o domínio
+                if (namePart.includes('aluno') || namePart.includes('discente') || namePart.includes('estudante') || namePart.includes('student')) {
+                    return false;
+                }
                 
                 // Verificar domínios e palavras-chave corporativas
                 const domainParts = domain.split('.');
@@ -522,12 +534,8 @@
                 const customWordsValue = customKeywords.value;
                 const customWords = customWordsValue.split(',').map(word => word.trim().toLowerCase()).filter(word => word);
                 if (customWords.length > 0) {
-                    const emailNamePart = email.split('@')[0].toLowerCase();
-                    if (customWords.some(word => emailNamePart.includes(word) || domain.includes(word))) return true;
+                    if (customWords.some(word => namePart.includes(word) || domain.includes(word))) return true;
                 }
-                
-                // Verificar se a parte do nome do e-mail possui padrões corporativos
-                const namePart = email.split('@')[0].toLowerCase();
                 
                 // Padrões corporativos comuns como nome.sobrenome, inicial.sobrenome, etc.
                 if (namePart.includes('.')) return true;
@@ -535,6 +543,16 @@
                 // Verificar padrões como contato@, comercial@, vendas@, etc.
                 const corporatePatterns = ['contato', 'comercial', 'vendas', 'info', 'suporte', 'atendimento', 'adm', 'financeiro', 'rh', 'compras', 'marketing', 'contact', 'sales', 'support', 'admin', 'orcamento', 'orçamento', 'projetos', 'projects', 'service', 'servico', 'diretoria', 'gerencia'];
                 if (corporatePatterns.some(pattern => namePart === pattern || namePart.startsWith(pattern + '.'))) return true;
+                
+                // Os domínios educacionais são considerados corporativos (instituições como parceiros/clientes)
+                if (domain.includes('.edu') || domain.includes('senai') || domain.includes('ifsc') || 
+                    domain.includes('ifce') || domain.includes('ufpa') || domain.includes('usp') ||
+                    domain.includes('unb') || domain.includes('ufmg') || domain.includes('unicamp') ||
+                    domain.includes('fatec') || domain.includes('etec') || domain.includes('faculdade') ||
+                    domain.includes('universidade') || domain.includes('colegio') || domain.includes('colégio') ||
+                    domain.includes('school') || domain.includes('university')) {
+                    return true;
+                }
                 
                 return false;
             }
